@@ -1,48 +1,11 @@
-// Paint example specifically for the TFTLCD breakout board.
-// If using the Arduino shield, use the tftpaint_shield.pde sketch instead!
-// DOES NOT CURRENTLY WORK ON ARDUINO LEONARDO
-
 #include <Adafruit_GFX.h>    // Core graphics library
 #include <Adafruit_TFTLCD.h> // Hardware-specific library
 #include <TouchScreen.h>
 
 #if defined(__SAM3X8E__)
-    #undef __FlashStringHelper::F(string_literal)
-    #define F(string_literal) string_literal
+#undef __FlashStringHelper::F(string_literal)
+#define F(string_literal) string_literal
 #endif
-
-// When using the BREAKOUT BOARD only, use these 8 data lines to the LCD:
-// For the Arduino Uno, Duemilanove, Diecimila, etc.:
-//   D0 connects to digital pin 8  (Notice these are
-//   D1 connects to digital pin 9   NOT in order!)
-//   D2 connects to digital pin 2
-//   D3 connects to digital pin 3
-//   D4 connects to digital pin 4
-//   D5 connects to digital pin 5
-//   D6 connects to digital pin 6
-//   D7 connects to digital pin 7
-
-// For the Arduino Mega, use digital pins 22 through 29
-// (on the 2-row header at the end of the board).
-//   D0 connects to digital pin 22
-//   D1 connects to digital pin 23
-//   D2 connects to digital pin 24
-//   D3 connects to digital pin 25
-//   D4 connects to digital pin 26
-//   D5 connects to digital pin 27
-//   D6 connects to digital pin 28
-//   D7 connects to digital pin 29
-
-// For the Arduino Due, use digital pins 33 through 40
-// (on the 2-row header at the end of the board).
-//   D0 connects to digital pin 33
-//   D1 connects to digital pin 34
-//   D2 connects to digital pin 35
-//   D3 connects to digital pin 36
-//   D4 connects to digital pin 37
-//   D5 connects to digital pin 38
-//   D6 connects to digital pin 39
-//   D7 connects to digital pin 40
 
 #define YP A3  // must be an analog pin, use "An" notation!
 #define XM A2  // must be an analog pin, use "An" notation!
@@ -76,63 +39,97 @@ TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 #define YELLOW  0xFFE0
 #define WHITE   0xFFFF
 
-
 Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 
-#define BOXSIZE 40
+#define BOXSIZE 64
+#define BINGO_OFFSET 32
 #define PENRADIUS 3
-int oldcolor, currentcolor;
+
+#define NUM_SQUARES 5
+#define MIN_NUM 10
+#define MAX_NUM 99
+
+int numbers[NUM_SQUARES][NUM_SQUARES];
+char BINGO[] = "BINGO";
+
+int rand_x, rand_y;
+
+void draw_square(int x, int y, int color) {
+  tft.fillRect(x * BOXSIZE, BINGO_OFFSET + y * BOXSIZE, BOXSIZE, BOXSIZE, color);
+  tft.drawRect(x * BOXSIZE, BINGO_OFFSET + y * BOXSIZE, BOXSIZE, BOXSIZE, WHITE);
+}
+
+void write_square(int x, int y, int num) {
+  tft.setCursor(x * BOXSIZE + BOXSIZE / 2 - 8, BINGO_OFFSET + y * BOXSIZE + BOXSIZE / 2 - 8);
+  tft.println(num);
+}
+
+int get_random_number() {
+  return random(MIN_NUM, MAX_NUM);
+}
+
+void get_random_square() {
+  rand_x = random(0, NUM_SQUARES);
+  rand_y = random(0, NUM_SQUARES);
+  while (numbers[rand_x][rand_y] == -1) {
+    rand_x = random(0, NUM_SQUARES);
+    rand_y = random(0, NUM_SQUARES);
+  }
+}
+
+void reset_board() {
+  tft.fillScreen(BLACK);
+
+  randomSeed(analogRead(0));
+
+  for (int i = 0; i < NUM_SQUARES; i++) {
+    for (int j = 0; j < NUM_SQUARES; j++) {
+      draw_square(j, i, BLUE);
+    }
+  }
+  tft.setTextColor(WHITE);
+  tft.setTextSize(2);
+
+  for (int i = 0; i < NUM_SQUARES; i++) {
+    tft.setCursor(i * BOXSIZE + BOXSIZE / 2 - 8, 8);
+    tft.println(BINGO[i]);
+  }
+  long num = get_random_number();
+  for (int i = 0; i < NUM_SQUARES; i++) {
+    for (int j = 0; j < NUM_SQUARES; j++) {
+      numbers[i][j] = num;
+      write_square(i, j, num);
+      num = get_random_number();
+    }
+  }
+  get_random_square();
+}
 
 void setup(void) {
   Serial.begin(9600);
-  Serial.println(F("Paint!"));
-  
+
   tft.reset();
-  
+
   uint16_t identifier = tft.readID();
-
-  if(identifier == 0x9325) {
-    Serial.println(F("Found ILI9325 LCD driver"));
-  } else if(identifier == 0x9328) {
-    Serial.println(F("Found ILI9328 LCD driver"));
-  } else if(identifier == 0x7575) {
-    Serial.println(F("Found HX8347G LCD driver"));
-  } else if(identifier == 0x9341) {
-    Serial.println(F("Found ILI9341 LCD driver"));
-  } else if(identifier == 0x8357) {
-    Serial.println(F("Found HX8357D LCD driver"));
-  } else {
-    Serial.print(F("Unknown LCD driver chip: "));
-    Serial.println(identifier, HEX);
-    Serial.println(F("If using the Adafruit 2.8\" TFT Arduino shield, the line:"));
-    Serial.println(F("  #define USE_ADAFRUIT_SHIELD_PINOUT"));
-    Serial.println(F("should appear in the library header (Adafruit_TFT.h)."));
-    Serial.println(F("If using the breakout board, it should NOT be #defined!"));
-    Serial.println(F("Also if using the breakout, double-check that all wiring"));
-    Serial.println(F("matches the tutorial."));
-    return;
-  }
-
   tft.begin(identifier);
 
-  tft.fillScreen(BLACK);
+  reset_board();
 
-  tft.fillRect(0, 0, BOXSIZE, BOXSIZE, RED);
-  tft.fillRect(BOXSIZE, 0, BOXSIZE, BOXSIZE, YELLOW);
-  tft.fillRect(BOXSIZE*2, 0, BOXSIZE, BOXSIZE, GREEN);
-  tft.fillRect(BOXSIZE*3, 0, BOXSIZE, BOXSIZE, CYAN);
-  tft.fillRect(BOXSIZE*4, 0, BOXSIZE, BOXSIZE, BLUE);
-  tft.fillRect(BOXSIZE*5, 0, BOXSIZE, BOXSIZE, MAGENTA);
-  // tft.fillRect(BOXSIZE*6, 0, BOXSIZE, BOXSIZE, WHITE);
- 
-  tft.drawRect(0, 0, BOXSIZE, BOXSIZE, WHITE);
-  currentcolor = RED;
- 
   pinMode(13, OUTPUT);
 }
 
-#define MINPRESSURE 10
+#define MINPRESSURE 100
 #define MAXPRESSURE 1000
+
+void determine_square(TSPoint p, int *box_x, int *box_y) {
+  *box_x = p.x / BOXSIZE;
+  *box_y = (p.y - BINGO_OFFSET) / BOXSIZE;
+  if (*box_y > NUM_SQUARES - 1 || *box_x > NUM_SQUARES - 1) {
+    *box_x = -1;
+    *box_y = -1;
+    return;
+  }
+}
 
 void loop()
 {
@@ -146,64 +143,36 @@ void loop()
   pinMode(YP, OUTPUT);
   //pinMode(YM, OUTPUT);
 
-  // we have some minimum pressure we consider 'valid'
-  // pressure of 0 means no pressing!
-
   if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
-    /*
-    Serial.print("X = "); Serial.print(p.x);
-    Serial.print("\tY = "); Serial.print(p.y);
-    Serial.print("\tPressure = "); Serial.println(p.z);
-    */
-    
-    if (p.y < (TS_MINY-5)) {
-      Serial.println("erase");
-      // press the bottom of the screen to erase 
-      tft.fillRect(0, BOXSIZE, tft.width(), tft.height()-BOXSIZE, BLACK);
-    }
     // scale from 0->1023 to tft.width
     p.x = map(p.x, TS_MINX, TS_MAXX, tft.width(), 0);
     p.y = map(p.y, TS_MINY, TS_MAXY, tft.height(), 0);
-    /*
-    Serial.print("("); Serial.print(p.x);
-    Serial.print(", "); Serial.print(p.y);
-    Serial.println(")");
-    */
-    if (p.y < BOXSIZE) {
-       oldcolor = currentcolor;
 
-       if (p.x < BOXSIZE) { 
-         currentcolor = RED; 
-         tft.drawRect(0, 0, BOXSIZE, BOXSIZE, WHITE);
-       } else if (p.x < BOXSIZE*2) {
-         currentcolor = YELLOW;
-         tft.drawRect(BOXSIZE, 0, BOXSIZE, BOXSIZE, WHITE);
-       } else if (p.x < BOXSIZE*3) {
-         currentcolor = GREEN;
-         tft.drawRect(BOXSIZE*2, 0, BOXSIZE, BOXSIZE, WHITE);
-       } else if (p.x < BOXSIZE*4) {
-         currentcolor = CYAN;
-         tft.drawRect(BOXSIZE*3, 0, BOXSIZE, BOXSIZE, WHITE);
-       } else if (p.x < BOXSIZE*5) {
-         currentcolor = BLUE;
-         tft.drawRect(BOXSIZE*4, 0, BOXSIZE, BOXSIZE, WHITE);
-       } else if (p.x < BOXSIZE*6) {
-         currentcolor = MAGENTA;
-         tft.drawRect(BOXSIZE*5, 0, BOXSIZE, BOXSIZE, WHITE);
-       }
-
-       if (oldcolor != currentcolor) {
-          if (oldcolor == RED) tft.fillRect(0, 0, BOXSIZE, BOXSIZE, RED);
-          if (oldcolor == YELLOW) tft.fillRect(BOXSIZE, 0, BOXSIZE, BOXSIZE, YELLOW);
-          if (oldcolor == GREEN) tft.fillRect(BOXSIZE*2, 0, BOXSIZE, BOXSIZE, GREEN);
-          if (oldcolor == CYAN) tft.fillRect(BOXSIZE*3, 0, BOXSIZE, BOXSIZE, CYAN);
-          if (oldcolor == BLUE) tft.fillRect(BOXSIZE*4, 0, BOXSIZE, BOXSIZE, BLUE);
-          if (oldcolor == MAGENTA) tft.fillRect(BOXSIZE*5, 0, BOXSIZE, BOXSIZE, MAGENTA);
-       }
+    int x, y;
+    determine_square(p, &x, &y);
+    if (x == rand_x && y == rand_y) {
+      numbers[rand_x][rand_y] = -1;
+      draw_square(x, y, RED);
+      get_random_square();
     }
-    if (((p.y-PENRADIUS) > BOXSIZE) && ((p.y+PENRADIUS) < tft.height())) {
-      tft.fillCircle(p.x, p.y, PENRADIUS, currentcolor);
-    }
+    tft.fillRect(1 * BOXSIZE, 6 * BOXSIZE, BOXSIZE, BOXSIZE, BLACK);
+    tft.setCursor(1 * BOXSIZE + BOXSIZE / 2 - 8, 6 * BOXSIZE + BOXSIZE / 2 - 8);
+    tft.println(x);
+    tft.fillRect(2 * BOXSIZE, 6 * BOXSIZE, BOXSIZE, BOXSIZE, BLACK);
+    tft.setCursor(2 * BOXSIZE + BOXSIZE / 2 - 8, 6 * BOXSIZE + BOXSIZE / 2 - 8);
+    tft.println(y);
+    tft.fillRect(3 * BOXSIZE, 6 * BOXSIZE, BOXSIZE, BOXSIZE, BLACK);
+    tft.setCursor(3 * BOXSIZE + BOXSIZE / 2 - 8, 6 * BOXSIZE + BOXSIZE / 2 - 8);
+    tft.println(BINGO[rand_x]);
+    tft.fillRect(4 * BOXSIZE, 6 * BOXSIZE, BOXSIZE, BOXSIZE, BLACK);
+    tft.setCursor(4 * BOXSIZE + BOXSIZE / 2 - 8, 6 * BOXSIZE + BOXSIZE / 2 - 8);
+    tft.println(numbers[rand_x][rand_y]);
   }
 }
+
+
+
+
+
+
 
