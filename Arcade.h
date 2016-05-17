@@ -1,7 +1,36 @@
 #ifndef Arcade_h
 #define Arcade_h
 
-#include "Game.h"
+#include <Adafruit_GFX.h>    // Core graphics library
+#include <Adafruit_TFTLCD.h> // Hardware-specific library
+#include <TouchScreen.h>
+
+class Bingo
+{
+public:
+  Bingo(TouchScreen *_ts, Adafruit_TFTLCD *_tft);
+  void reset();
+  void run();
+private:
+  void draw_square(int x, int y, int color);
+  void write_square(int x, int y, int color);
+  void draw_bingos_left();
+  int victory(int x, int y);
+  TouchScreen *ts;
+  Adafruit_TFTLCD *tft;
+};
+
+class CandyCrush
+{
+public:
+  CandyCrush(TouchScreen *_ts, Adafruit_TFTLCD *_tft);
+  void reset();
+  void run();
+private:
+  void draw_candy(int x, int y, int color);
+  TouchScreen *ts;
+  Adafruit_TFTLCD *tft;
+};
 
 #if defined(__SAM3X8E__)
 #undef __FlashStringHelper::F(string_literal)

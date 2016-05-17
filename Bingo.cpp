@@ -15,12 +15,10 @@ char BINGO[] = "BINGO";
 
 int rand_x, rand_y;
 int bingos_left, game_over;
-TouchScreen *ts;
-Adafruit_TFTLCD *tft;
 
-Bingo::Bingo(TouchScreen *_ts, Adafruit_TFTLCD *_tft) : Game(_ts, _tft) {
-  ts = _ts;
-  tft = _tft;
+Bingo::Bingo(TouchScreen *_ts, Adafruit_TFTLCD *_tft) {
+  this->ts = _ts;
+  this->tft = _tft;
 }
 
 int determine_square(TSPoint p, int *box_x, int *box_y) {
@@ -36,12 +34,12 @@ int determine_square(TSPoint p, int *box_x, int *box_y) {
   return 0;
 }
 
-void draw_square(int x, int y, int color) {
+void Bingo::draw_square(int x, int y, int color) {
   tft->fillRect(x * BOXSIZE, BINGO_OFFSET + y * BOXSIZE, BOXSIZE, BOXSIZE, color);
   tft->drawRect(x * BOXSIZE, BINGO_OFFSET + y * BOXSIZE, BOXSIZE, BOXSIZE, WHITE);
 }
 
-void write_square(int x, int y, int num) {
+void Bingo::write_square(int x, int y, int num) {
   tft->setCursor(x * BOXSIZE + BOXSIZE / 2 - 8, BINGO_OFFSET + y * BOXSIZE + BOXSIZE / 2 - 8);
   tft->println(num);
 }
@@ -67,7 +65,7 @@ void get_random_square() {
   }
 }
 
-void draw_bingos_left() {
+void Bingo::draw_bingos_left() {
   tft->fillRect(2 * BOXSIZE, 7 * BOXSIZE, 3 * BOXSIZE, BOXSIZE, BLACK);
   tft->setCursor(2 * BOXSIZE, 7 * BOXSIZE);
   tft->println("Bingos left:");
@@ -75,7 +73,31 @@ void draw_bingos_left() {
   tft->println(bingos_left);
 }
 
-void reset_board() {
+int Bingo::victory(int x, int y) {
+  int row = 1;
+  int col = 1;
+  for (int i = 0; i < NUM_SQUARES; i++) {
+    if (numbers[x][i] != -1) {
+      col = 0; 
+    }
+    if (numbers[i][y] != -1) {
+      row = 0; 
+    }
+  }
+  if (row == 1) {
+    for (int i = 0; i < NUM_SQUARES; i++) {
+      draw_square(i, y, GREEN);
+    }
+  } 
+  else if (col == 1) {
+    for (int i = 0; i < NUM_SQUARES; i++) {
+      draw_square(x, i, GREEN);
+    }
+  }
+  return row | col;
+}
+
+void Bingo::reset() {
   tft->fillScreen(BLACK);
   bingos_left = 50;
   game_over = 0;
@@ -115,34 +137,6 @@ void reset_board() {
   draw_bingos_left();
 }
 
-int victory(int x, int y) {
-  int row = 1;
-  int col = 1;
-  for (int i = 0; i < NUM_SQUARES; i++) {
-    if (numbers[x][i] != -1) {
-      col = 0; 
-    }
-    if (numbers[i][y] != -1) {
-      row = 0; 
-    }
-  }
-  if (row == 1) {
-    for (int i = 0; i < NUM_SQUARES; i++) {
-      draw_square(i, y, GREEN);
-    }
-  } 
-  else if (col == 1) {
-    for (int i = 0; i < NUM_SQUARES; i++) {
-      draw_square(x, i, GREEN);
-    }
-  }
-  return row | col;
-}
-
-void Bingo::reset() {
-  reset_board();
-}
-
 void Bingo::run() {
   TSPoint p = ts->getPoint();
 
@@ -161,7 +155,7 @@ void Bingo::run() {
 
     int x, y;
     if (determine_square(p, &x, &y) == RESET) {
-      reset_board();
+      reset();
     } 
     else if (!game_over) {
       if (x == rand_x && y == rand_y) {
