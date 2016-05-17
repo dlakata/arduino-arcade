@@ -53,9 +53,7 @@ int numbers[NUM_SQUARES][NUM_SQUARES];
 char BINGO[] = "BINGO";
 
 int rand_x, rand_y;
-
-int bingos_left = 50;
-int game_over = 0;
+int bingos_left, game_over;
 
 void draw_square(int x, int y, int color) {
   tft.fillRect(x * BOXSIZE, BINGO_OFFSET + y * BOXSIZE, BOXSIZE, BOXSIZE, color);
@@ -88,8 +86,18 @@ void get_random_square() {
   }
 }
 
+void draw_bingos_left() {
+  tft.fillRect(2 * BOXSIZE, 7 * BOXSIZE, 3 * BOXSIZE, BOXSIZE, BLACK);
+  tft.setCursor(2 * BOXSIZE, 7 * BOXSIZE);
+  tft.println("Bingos left:");
+  tft.setCursor(4 * BOXSIZE + BOXSIZE / 2, 7 * BOXSIZE);
+  tft.println(bingos_left);
+}
+
 void reset_board() {
   tft.fillScreen(BLACK);
+  bingos_left = 50;
+  game_over = 0;
 
   randomSeed(analogRead(0));
 
@@ -123,6 +131,7 @@ void reset_board() {
 
   tft.setCursor(BOXSIZE / 4, 7 * BOXSIZE);
   tft.println("RESET");
+  draw_bingos_left();
 }
 
 int victory(int x, int y) {
@@ -191,7 +200,9 @@ void loop()
   pinMode(YP, OUTPUT);
   //pinMode(YM, OUTPUT);
 
-  if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
+  int pressed = p.z > MINPRESSURE && p.z < MAXPRESSURE;
+
+  if (pressed) {
     // scale from 0->1023 to tft.width
     p.x = map(p.x, TS_MINX, TS_MAXX, tft.width(), 0);
     p.y = map(p.y, TS_MINY, TS_MAXY, tft.height(), 0);
@@ -199,43 +210,41 @@ void loop()
     int x, y;
     if (determine_square(p, &x, &y) == RESET) {
       reset_board();
-      return;
-    }
-    if (game_over) {
-      return;
-    }
-    if (x == rand_x && y == rand_y) {
-      numbers[rand_x][rand_y] = -1;
-      draw_square(x, y, RED);
-      get_random_square();
-      tft.fillRect(2 * BOXSIZE, 6 * BOXSIZE, BOXSIZE, BOXSIZE, BLACK);
-      tft.fillRect(3 * BOXSIZE, 6 * BOXSIZE, BOXSIZE, BOXSIZE, BLACK);
-      tft.setCursor(2 * BOXSIZE, 6 * BOXSIZE);
-      tft.println(BINGO[rand_x]);
-      tft.setCursor(3 * BOXSIZE, 6 * BOXSIZE);
-      tft.println(numbers[rand_x][rand_y]);
-    }
-
-    if (bingos_left <= 0) {
-      tft.fillRect(2 * BOXSIZE, 7 * BOXSIZE, 3 * BOXSIZE, BOXSIZE, BLACK);
-      tft.setCursor(3 * BOXSIZE, 7 * BOXSIZE);
-      tft.println("Game over!");
-      game_over = 1;
     } 
-    else if (decrement_bingos()) {
-      bingos_left--;
-      tft.fillRect(2 * BOXSIZE, 7 * BOXSIZE, 3 * BOXSIZE, BOXSIZE, BLACK);
-      tft.setCursor(2 * BOXSIZE, 7 * BOXSIZE);
-      tft.println("Bingos left:");
-      tft.setCursor(4 * BOXSIZE + BOXSIZE / 2, 7 * BOXSIZE);
-      tft.println(bingos_left);
-    }
-    if (victory(x, y)) {
-      tft.fillRect(2 * BOXSIZE, 7 * BOXSIZE, 3 * BOXSIZE, BOXSIZE, BLACK);
-      tft.setCursor(3 * BOXSIZE, 7 * BOXSIZE);
-      tft.println("You won!");
-      game_over = 1;
+    else if (!game_over) {
+      if (x == rand_x && y == rand_y) {
+        numbers[rand_x][rand_y] = -1;
+        draw_square(x, y, RED);
+        get_random_square();
+        tft.fillRect(2 * BOXSIZE, 6 * BOXSIZE, BOXSIZE, BOXSIZE, BLACK);
+        tft.fillRect(3 * BOXSIZE, 6 * BOXSIZE, BOXSIZE, BOXSIZE, BLACK);
+        tft.setCursor(2 * BOXSIZE, 6 * BOXSIZE);
+        tft.println(BINGO[rand_x]);
+        tft.setCursor(3 * BOXSIZE, 6 * BOXSIZE);
+        tft.println(numbers[rand_x][rand_y]);
+      }
+
+      if (bingos_left <= 0) {
+        tft.fillRect(2 * BOXSIZE, 7 * BOXSIZE, 3 * BOXSIZE, BOXSIZE, BLACK);
+        tft.setCursor(3 * BOXSIZE, 7 * BOXSIZE);
+        tft.println("Game over!");
+        game_over = 1;
+      } 
+      else if (decrement_bingos()) {
+        bingos_left--;
+        draw_bingos_left();
+      }
+      if (victory(x, y)) {
+        tft.fillRect(2 * BOXSIZE, 7 * BOXSIZE, 3 * BOXSIZE, BOXSIZE, BLACK);
+        tft.setCursor(3 * BOXSIZE, 7 * BOXSIZE);
+        tft.println("You won!");
+        game_over = 1;
+      }
     }
   }
 }
+
+
+
+
 
