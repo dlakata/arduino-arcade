@@ -33,7 +33,7 @@
 #define YELLOW  0xFFE0
 #define WHITE   0xFFFF
 
-#define MINPRESSURE 100
+#define MINPRESSURE 800
 #define MAXPRESSURE 1000
 
 #endif

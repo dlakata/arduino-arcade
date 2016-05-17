@@ -15,11 +15,10 @@ char BINGO[] = "BINGO";
 
 int rand_x, rand_y;
 int bingos_left, game_over;
-
 TouchScreen *ts;
 Adafruit_TFTLCD *tft;
 
-Bingo::Bingo(TouchScreen *_ts, Adafruit_TFTLCD *_tft) {
+Bingo::Bingo(TouchScreen *_ts, Adafruit_TFTLCD *_tft) : Game(_ts, _tft) {
   ts = _ts;
   tft = _tft;
 }

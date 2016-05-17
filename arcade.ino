@@ -5,14 +5,20 @@
 
 #include "Arcade.h"
 
-// For better pressure precision, we need to know the resistance
-// between X+ and X- Use any multimeter to read it
-// For the one we're using, its 300 ohms across the X plate
-TouchScreen arcade_ts = TouchScreen(XP, YP, XM, YM, 300);
+#define NUM_GAMES 1
+#define LINE_HEIGHT 100
+#define LINE_OFFSET 100
 
+TouchScreen arcade_ts = TouchScreen(XP, YP, XM, YM, 300);
 Adafruit_TFTLCD arcade_tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 
 Bingo bingo(&arcade_ts, &arcade_tft);
+CandyCrush candyCrush(&arcade_ts, &arcade_tft);
+
+char* names[NUM_GAMES + 1] = {
+  "BINGO",
+  "CANDY CRUSH"
+};
 
 void setup(void) {
   Serial.begin(9600);
@@ -21,18 +27,41 @@ void setup(void) {
 
   uint16_t identifier = arcade_tft.readID();
   arcade_tft.begin(identifier);
-  
-  bingo.reset();
 
+  arcade_tft.fillScreen(BLACK);
+  arcade_tft.setCursor(0, 0);
+  arcade_tft.setTextColor(WHITE);
+  arcade_tft.setTextSize(5);
+  arcade_tft.println("The Arcade");
+  arcade_tft.setTextSize(2);
+  for (int i = 0; i < NUM_GAMES + 1; i++) {
+    arcade_tft.setCursor(LINE_OFFSET, LINE_HEIGHT + LINE_HEIGHT * i);
+    arcade_tft.println(names[i]);
+  }
   pinMode(13, OUTPUT);
 }
 
 void loop()
 {
-  bingo.run();
+  TSPoint p = arcade_ts.getPoint();
+  pinMode(XM, OUTPUT);
+  pinMode(YP, OUTPUT);
+  int pressed = p.z > MINPRESSURE && p.z < MAXPRESSURE;
+  if (pressed) {
+    p.x = map(p.x, TS_MINX, TS_MAXX, arcade_tft.width(), 0);
+    p.y = map(p.y, TS_MINY, TS_MAXY, arcade_tft.height(), 0);
+    if (LINE_HEIGHT < p.y && p.y < LINE_HEIGHT * 2) {
+      bingo.reset();
+      while (1) {
+        bingo.run();
+      }
+    } else if (LINE_HEIGHT * 2 < p.y && p.y < LINE_HEIGHT * 3) {
+      candyCrush.reset();
+      while (1) {
+        candyCrush.run();
+      }
+    }
+  }
 }
-
-
-
 
 
