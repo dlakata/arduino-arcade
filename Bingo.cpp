@@ -45,11 +45,7 @@ void Bingo::write_square(int x, int y, int num) {
 }
 
 int decrement_bingos() {
-  int decrement = random(0, 20);
-  if (decrement < 1) {
-    return 1; 
-  }
-  return 0;
+  return random(0, 5);
 }
 
 int get_random_number() {
@@ -176,10 +172,8 @@ void Bingo::run() {
         tft->println("Game over!");
         game_over = 1;
       } 
-      else if (decrement_bingos()) {
-        bingos_left--;
-        draw_bingos_left();
-      }
+      bingos_left -= decrement_bingos();
+      draw_bingos_left();
       if (victory(x, y)) {
         tft->fillRect(2 * BOXSIZE, 7 * BOXSIZE, 3 * BOXSIZE, BOXSIZE, BLACK);
         tft->setCursor(3 * BOXSIZE, 7 * BOXSIZE);
